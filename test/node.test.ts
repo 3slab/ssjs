@@ -2,7 +2,7 @@ import * as assert from 'assert'
 
 import * as node from '../src/node'
 
-import { ErrorNode, TestSourceNode } from './utils'
+import {ErrorNode, TestSourceNode} from './utils'
 
 describe('node', function () {
   describe('.Node#enter', function () {

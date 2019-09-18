@@ -35,6 +35,6 @@ describe('ssjs', () => {
     .it('runs with folder exits with code 2')
 
   /*test
-    .do(() => cmd.run([path.join(__dirname, 'fixtures', 'emptyconfiguration.ts')]))
+    .do(() => cmd.run([path.join(__dirname, 'fixtures', 'emptyconfig', 'emptyconfiguration.ts')]))
     .it('runs with folder exits with error message')*/
 })

@@ -1,4 +1,8 @@
 import {Node, SourceNode, SyncNode} from '../src/node'
+import {createLogger} from '../src/utils'
+
+const silentLogger = createLogger()
+silentLogger.transports.forEach(t => (t.silent = true))
 
 export class TestSourceNode extends SourceNode {
   doPausedCalled = false
@@ -12,7 +16,7 @@ export class TestSourceNode extends SourceNode {
   doStopNbCall = 0
 
   constructor() {
-    super()
+    super({}, {}, silentLogger)
   }
 
   doPause(): void {
@@ -57,7 +61,7 @@ export class TestErrorSourceNode extends TestSourceNode {
 
 export class ErrorNode extends Node {
   constructor(protected error = new Error('my error')) {
-    super()
+    super({}, {}, silentLogger)
   }
 
   // tslint:disable-next-line:no-unused
@@ -70,7 +74,7 @@ export class PrependNode extends Node {
   entered: string[] = []
 
   constructor(protected prefix = '') {
-    super()
+    super({}, {}, silentLogger)
   }
 
   enter(value: any) {
@@ -112,7 +116,7 @@ export class MemorySyncNode extends SyncNode {
   ended: any[] = []
 
   constructor() {
-    super()
+    super({}, {}, silentLogger)
   }
 
   enter(value: any) {

@@ -1,23 +1,23 @@
 import {EventEmitter} from 'events'
 import * as _ from 'lodash'
+import {Logger} from 'winston'
 
-import {Node, SourceNode, SyncNode} from './node'
+import {Node} from './node'
+import {logger as defaultLogger} from './utils'
 
 export class Flow extends EventEmitter {
   nodes: Node[]
-  source: SourceNode
-  sync: SyncNode
+  logger: Logger
 
-  constructor(source: SourceNode, nodes: Node[], sync: SyncNode) {
+  constructor(nodes: Node[], logger: Logger = defaultLogger) {
     super()
-    this.source = source
     this.nodes = nodes
-    this.sync = sync
+    this.logger = logger
   }
 
   stop() {
     this.emit('pre-stop', this)
-    let stopped = this.source.stop()
+    let stopped = this.nodes[0].stop()
     this.emit('post-stop', this)
     return stopped
   }
@@ -25,46 +25,30 @@ export class Flow extends EventEmitter {
   start() {
     this.emit('pre-start', this)
     this.bindEvents()
-    this.source.start()
+    this.nodes[0].start()
     this.emit('post-start', this)
   }
 
-  allNodes(): Node[] {
-    return [this.source, ...this.nodes, this.sync]
-  }
-
   isProcessing(): boolean {
-    return _.some(this.allNodes(), (node: Node) => {
+    return _.some(this.nodes, (node: Node) => {
       return !node.queue.idle()
     })
   }
 
-  setSource(source: SourceNode) {
-    this.source = source
-  }
-
-  setSync(sync: SyncNode) {
-    this.sync = sync
-  }
-
-  addNode(node: Node) {
-    this.nodes.push(node)
-  }
-
   protected resume() {
     this.emit('pre-resume', this)
-    this.source.resume()
+    this.nodes[0].resume()
     this.emit('post-resume', this)
   }
 
   protected pause() {
     this.emit('pre-pause', this)
-    this.source.pause()
+    this.nodes[0].pause()
     this.emit('post-pause', this)
   }
 
   protected bindEvents() {
-    _.each(this.allNodes(), (node: Node) => {
+    _.each(this.nodes, (node: Node, key: number) => {
       node.on('error', (err: Error) => {
         this.emit('error', err, node)
       })
@@ -76,20 +60,13 @@ export class Flow extends EventEmitter {
           this.emit('post-drain')
         }
       })
-    })
 
-    _.each(this.nodes, (node: Node, key: number) => {
       node.on('leave', (value: any) => {
-        const nextNode = this.nodes.length - 1 !== key ? this.nodes[key + 1] : this.sync
-        nextNode.enter(value)
         this.pause()
+        if (this.nodes.length !== key + 1) {
+          this.nodes[key + 1].enter(value)
+        }
       })
-    })
-
-    this.source.on('leave', (value: any) => {
-      this.pause()
-      const nextNode = this.nodes.length ? this.nodes[0] : this.sync
-      nextNode.enter(value)
     })
   }
 }

@@ -1,15 +1,18 @@
+import {Logger} from 'winston'
+
 import {Node} from '../node'
+import {logger as defaultLogger} from '../utils'
 
 export class IncrementNode extends Node {
-  type = 'increment'
+  static type = 'increment'
 
-  constructor() {
-    super()
+  constructor(config = {}, logger: Logger = defaultLogger) {
+    super({}, config, logger)
   }
 
   async execute(value: number) {
     value = value + 1
-    this.logger.log(`[${this.type} ${this.config.id}] executed ${value}`)
+    this.logDebug(`executed ${value}`)
     return value
   }
 }

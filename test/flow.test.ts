@@ -12,42 +12,20 @@ import {
   TestSourceNode
 } from './utils'
 
-let myFlow: Flow
 let mySource: TestSourceNode
 let mySync: MemorySyncNode
 
 beforeEach(() => {
   mySource = new TestSourceNode()
   mySync = new MemorySyncNode()
-  myFlow = new Flow(
-    mySource,
-    [],
-    mySync
-  )
 })
 
 describe('flow', function () {
-  describe('#allNodes', function () {
-    it('should returns an array with the source, sync and all transformation nodes', function () {
-      let myNode1 = new PrependNode()
-      let myNode2 = new PrependNode()
-      myFlow.addNode(myNode1)
-      myFlow.addNode(myNode2)
-
-      assert.strictEqual(myFlow.allNodes().length, 4)
-      assert.strictEqual(myFlow.allNodes()[0], mySource)
-      assert.strictEqual(myFlow.allNodes()[1], myNode1)
-      assert.strictEqual(myFlow.allNodes()[2], myNode2)
-      assert.strictEqual(myFlow.allNodes()[3], mySync)
-    })
-  })
-
   describe('#isProcessing', function () {
     it('should returns true while at least one value is being processed', function (done) {
       let myNode1 = new PrependNode(' one')
       let myNode2 = new LockedPrependNode(' two')
-      myFlow.addNode(myNode1)
-      myFlow.addNode(myNode2)
+      let myFlow = new Flow([mySource, myNode1, myNode2, mySync])
 
       myFlow.start()
 
@@ -69,7 +47,7 @@ describe('flow', function () {
     it('should emits an error when one occurred in a node', function (done) {
       let myError = new Error('my error')
       let myErrorNode = new ErrorNode(myError)
-      myFlow.addNode(myErrorNode)
+      let myFlow = new Flow([mySource, myErrorNode, mySync])
 
       myFlow.start()
       mySource.push('value')
@@ -84,7 +62,7 @@ describe('flow', function () {
     it('should emits an error when one occurred in a source node', function (done) {
       let myError = new Error('my error')
       let myErrorNode = new TestErrorSourceNode(myError)
-      myFlow.setSource(myErrorNode)
+      let myFlow = new Flow([myErrorNode, mySync])
 
       myFlow.start()
       myErrorNode.push('value')
@@ -99,7 +77,7 @@ describe('flow', function () {
     it('should emits an error when one occurred in a sync node', function (done) {
       let myError = new Error('my error')
       let myErrorNode = new TestErrorSyncNode(myError)
-      myFlow.setSync(myErrorNode)
+      let myFlow = new Flow([mySource, myErrorNode])
 
       myFlow.start()
       mySource.push('value')
@@ -112,6 +90,7 @@ describe('flow', function () {
     })
 
     it('should start the source node on flow start', function () {
+      let myFlow = new Flow([mySource, mySync])
       myFlow.start()
       assert.strictEqual(mySource.doStartCalled, true)
     })
@@ -119,8 +98,8 @@ describe('flow', function () {
     it('passes the value from node to end until sync', function (done) {
       let myNode1 = new PrependNode(' one')
       let myNode2 = new PrependNode(' two')
-      myFlow.addNode(myNode1)
-      myFlow.addNode(myNode2)
+      let myFlow = new Flow([mySource, myNode1, myNode2, mySync])
+
       myFlow.start()
 
       mySource.push('zero')
@@ -134,8 +113,8 @@ describe('flow', function () {
     it('pauses the source until no other work to be done', function (done) {
       let myNode1 = new PrependNode(' one')
       let myNode2 = new LockedPrependNode(' two')
-      myFlow.addNode(myNode1)
-      myFlow.addNode(myNode2)
+      let myFlow = new Flow([mySource, myNode1, myNode2, mySync])
+
       myFlow.start()
 
       assert.strictEqual(mySource.doPausedCalled, false)
@@ -176,6 +155,7 @@ describe('flow', function () {
 
   describe('#stop', function () {
     it('should stop the source when stopping the flow', function () {
+      let myFlow = new Flow([mySource, mySync])
       myFlow.start()
       assert.strictEqual(mySource.doStartCalled, true)
       assert.strictEqual(mySource.doStopCalled, false)

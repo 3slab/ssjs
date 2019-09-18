@@ -1,13 +1,12 @@
 import {Command, flags} from '@oclif/command'
 // tslint:disable-next-line:no-implicit-dependencies
 import {CLIError} from '@oclif/errors'
-import * as fs from 'fs'
 import * as path from 'path'
 
-import {LockedPrependNode} from '../test/utils'
-
 import {Flow} from './flow'
+import {SsjsNodeLoader} from './loader'
 import {EndSyncNode, IncrementNode, PingSourceNode} from './nodes'
+import {checkFile, logger} from './utils'
 
 class Ssjs extends Command {
   static description = 'ssjs is the cli tool to get data from a source, ' +
@@ -33,39 +32,24 @@ class Ssjs extends Command {
     Ssjs.args[0].default = path.join(this.config.configDir, 'configuration.ts')
     const {args} = this.parse(Ssjs)
 
-    const filePath = this.checkFile(args.file)
+    let filePath
+    try {
+      filePath = checkFile(args.file)
+    } catch (e) {
+      throw new CLIError(e.message)
+    }
 
-    let config = require(filePath)
-    this.log(config)
+    //let config = require(filePath)
+    logger.level = 'debug'
+
+    let load = new SsjsNodeLoader(filePath, logger)
+    load.load()
 
     let myflow = new Flow(
-      new PingSourceNode(),
-      [new IncrementNode(), new IncrementNode(), new LockedPrependNode()],
-      new EndSyncNode()
+      [new PingSourceNode(), new IncrementNode(), new IncrementNode(), new IncrementNode(), new EndSyncNode()],
+      logger
     )
     myflow.start()
-  }
-
-  checkFile(filePath: string): string {
-    let stat: fs.Stats
-
-    try {
-      stat = fs.lstatSync(filePath)
-    } catch {
-      throw new CLIError(`${filePath} does not exit`)
-    }
-
-    if (!stat.isFile()) {
-      throw new CLIError(`${filePath} is not a file`)
-    }
-
-    try {
-      fs.accessSync(filePath, fs.constants.R_OK)
-    } catch {
-      throw new CLIError(`${filePath} file is not readable`)
-    }
-
-    return path.resolve(filePath)
   }
 }
 
