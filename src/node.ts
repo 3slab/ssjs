@@ -1,3 +1,4 @@
+import * as Joi from '@hapi/joi'
 import * as async from 'async'
 import {EventEmitter} from 'events'
 import * as _ from 'lodash'
@@ -15,25 +16,26 @@ export class Node extends EventEmitter {
   queue: async.AsyncQueue<any>
   config: NodeConfig
   logger: Logger
-  spec: NodeConfig
 
   constructor(spec = {}, config = {}, logger: Logger = defaultLogger) {
     super()
 
     this.logger = logger
 
-    this.spec = _.merge(
-      {},
-      {},
-      spec
-    )
+    spec = Joi.object({
+      id: Joi.string().required(),
+      queueLength: Joi.number().min(1)
+    }).append(spec)
 
-    this.config = _.merge(
-      {
-        id: _.uniqueId('node-'),
-        queueLength: 1
-      },
-      config
+    this.config = Joi.attempt(
+      _.merge(
+        {
+          id: _.uniqueId('node-'),
+          queueLength: 1
+        },
+        config
+      ),
+      spec
     )
 
     this.queue = async.queue(async task => {
